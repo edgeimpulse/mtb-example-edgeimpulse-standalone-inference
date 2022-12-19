@@ -129,14 +129,16 @@ extern "C" EI_IMPULSE_ERROR run_nn_inference(
         ei_printf("Predictions (time: %d ms.):\n", result->timing.classification);
     }
 
+    EI_IMPULSE_ERROR fill_res = EI_IMPULSE_OK;
+
     if (impulse->object_detection) {
         switch (impulse->object_detection_last_layer) {
             case EI_CLASSIFIER_LAST_LAYER_FOMO: {
                 #if EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED == 1
-                    fill_result_struct_i8_fomo(impulse, result, out_data, impulse->tflite_output_zeropoint, impulse->tflite_output_scale,
+                    fill_res = fill_result_struct_i8_fomo(impulse, result, out_data, impulse->tflite_output_zeropoint, impulse->tflite_output_scale,
                         impulse->input_width / 8, impulse->input_height / 8);
                 #else
-                    fill_result_struct_f32_fomo(impulse, result, out_data,
+                    fill_res = fill_result_struct_f32_fomo(impulse, result, out_data,
                         impulse->input_width / 8, impulse->input_height / 8);
                 #endif
                 break;
@@ -154,16 +156,33 @@ extern "C" EI_IMPULSE_ERROR run_nn_inference(
                     ei_printf("ERR: MobileNet SSD does not support quantized inference\n");
                     return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
                 #else
-                    fill_result_struct_f32_object_detection(impulse, result, out_data, scores_tensor, label_tensor, debug);
+                    fill_res = fill_result_struct_f32_object_detection(impulse, result, out_data, scores_tensor, label_tensor, debug);
                 #endif
                 break;
             }
-            case EI_CLASSIFIER_LAST_LAYER_YOLOV5: {
+            case EI_CLASSIFIER_LAST_LAYER_YOLOV5:
+            case EI_CLASSIFIER_LAST_LAYER_YOLOV5_V5_DRPAI: {
                 #if EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED == 1
                     ei_printf("ERR: YOLOv5 does not support quantized inference\n");
                     return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
                 #else
-                    fill_result_struct_f32_yolov5(
+                    int version = impulse->object_detection_last_layer == EI_CLASSIFIER_LAST_LAYER_YOLOV5_V5_DRPAI ?
+                        5 : 6;
+                    fill_res = fill_result_struct_f32_yolov5(
+                        impulse,
+                        result,
+                        version,
+                        out_data,
+                        impulse->tflite_output_features_count);
+                #endif
+                break;
+            }
+            case EI_CLASSIFIER_LAST_LAYER_YOLOX: {
+                #if EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED == 1
+                    ei_printf("ERR: YOLOX does not support quantized inference\n");
+                    return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
+                #else
+                    fill_res = fill_result_struct_f32_yolox(
                         impulse,
                         result,
                         out_data,
@@ -180,10 +199,14 @@ extern "C" EI_IMPULSE_ERROR run_nn_inference(
     }
     else {
 #if EI_CLASSIFIER_TFLITE_OUTPUT_QUANTIZED == 1
-        fill_result_struct_i8(impulse, result, out_data, impulse->tflite_output_zeropoint, impulse->tflite_output_scale, debug);
+        fill_res = fill_result_struct_i8(impulse, result, out_data, impulse->tflite_output_zeropoint, impulse->tflite_output_scale, debug);
 #else
-        fill_result_struct_f32(impulse, result, out_data, debug);
+        fill_res = fill_result_struct_f32(impulse, result, out_data, debug);
 #endif
+    }
+
+    if (fill_res != EI_IMPULSE_OK) {
+        return fill_res;
     }
 
     // on Linux we're not worried about free'ing (for now)
