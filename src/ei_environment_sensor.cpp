@@ -26,7 +26,6 @@
 #include "cy_pdl.h"
 #include "cyhal.h"
 #include "cybsp.h"
-#include "mtb_thermistor_ntc_gpio.h"
 
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "ei_environment_sensor.h"
@@ -61,12 +60,6 @@
  **************************************/
 static float env_data[ENV_AXIS_SAMPLED];
 cyhal_adc_t adc;
-mtb_thermistor_ntc_gpio_t thermistor;
-mtb_thermistor_ntc_gpio_cfg_t thermistor_cfg = {
-    .r_ref = THERM_R_REF,
-    .b_const = THERM_B_CONST,
-    .r_infinity = THERM_R_INFINITY,
-};
 /* Flag: 0 - sample reference, 1 - sample thermistor */
 static volatile bool sample_ref_voltage = false;
 /* Variable to store sample between ISR and callback */
@@ -125,7 +118,6 @@ bool ei_environment_sensor_init(void)
     };
     cyhal_adc_channel_t adc_channel;
 
-    memset(&thermistor, 0, sizeof(thermistor));
     ei_printf("\nInitializing Thermistor\n");
 
     /* GPIO for reference resistor */
