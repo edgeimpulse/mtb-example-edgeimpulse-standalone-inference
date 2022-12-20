@@ -31,7 +31,7 @@
 ****************************************/
 #define CONVERT_G_TO_MS2    9.80665f
 #define IMU_SCALING_CONST   (16384.0)
-#define I2C_CLK_FREQ_HZ     (10000000UL)
+#define I2C_CLK_FREQ_HZ     (1000000UL)
 
 /***************************************
  *        Local variables
