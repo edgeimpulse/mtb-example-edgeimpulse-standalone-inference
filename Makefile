@@ -48,7 +48,7 @@ TARGET=APP_CY8CKIT-062-BLE
 #
 # If APPNAME is edited, ensure to update or regenerate launch
 # configurations for your IDE.
-APPNAME=mtb-example-edgeimpulse-codeexample
+APPNAME=mtb-example-edgeimpulse-standalone-inference
 
 # Name of toolchain to use. Options include:
 #
